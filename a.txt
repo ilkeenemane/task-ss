@@ -1,0 +1,76 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Diagnostics;
+using System.Windows.Forms;
+
+namespace ScreenshotApp
+{
+    class Program
+    {
+        static string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        static string imagesFolderPath = Path.Combine(desktopPath, "Images");
+
+        static void Main(string[] args)
+        {
+            if (!Directory.Exists(imagesFolderPath))
+            {
+                Directory.CreateDirectory(imagesFolderPath);
+            }
+
+            using (var keyboardHook = new KeyboardHook())
+            {
+                keyboardHook.KeyPressed += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Enter)
+                    {
+                        CaptureScreenshot();
+                    }
+                };
+
+                Application.Run();
+            }
+        }
+
+        static void CaptureScreenshot()
+        {
+            string fileName = $"screenshot_{DateTime.Now:yyyyMMddHHmmss}.png";
+            string filePath = Path.Combine(imagesFolderPath, fileName);
+
+            using (Bitmap bitmap = new Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height))
+            {
+                using (Graphics g = Graphics.FromImage(bitmap))
+                {
+                    g.CopyFromScreen(0, 0, 0, 0, bitmap.Size);
+                }
+
+                bitmap.Save(filePath, ImageFormat.Png);
+            }
+
+            Console.WriteLine($"Screenshot saved: {filePath}");
+
+            ListImageFilesInFolder(imagesFolderPath);
+
+            Process.Start("mspaint.exe", filePath); 
+        }
+
+        static void ListImageFilesInFolder(string folderPath)
+        {
+            var imageFiles = Directory.GetFiles(folderPath, "*.png").ToList();
+            if (imageFiles.Count > 0)
+            {
+                Console.WriteLine("Image files in folder:");
+                foreach (var file in imageFiles)
+                {
+                    Console.WriteLine(Path.GetFileName(file));
+                }
+            }
+            else
+            {
+                Console.WriteLine("No image files found in folder.");
+            }
+        }
+    }
+}
